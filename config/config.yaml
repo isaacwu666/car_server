@@ -1,0 +1,17 @@
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:root:root1234@tcp(127.0.0.1:3306)/happy_poker"
+        tables: "player"
+        removePrefix: "gf_"
+        descriptionTag: true
+        noModelComment: true
+
+database:
+  database.logger:
+    Level: "all"
+    Stdout: true
+    CtxKeys: ["Trace-Id"]
+  default:
+    link: "mysql:root:root1234@tcp(127.0.0.1:3306)/happy_poker"
+    debug: true
