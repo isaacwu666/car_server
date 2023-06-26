@@ -2,11 +2,11 @@ package utils
 
 import (
 	"encoding/json"
-	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gorilla/websocket"
 	"strings"
 )
 
-func WriteWs(ws *ghttp.WebSocket, bus string, data any) bool {
+func WriteWs(ws *websocket.Conn, bus string, data any) bool {
 	if data == nil {
 		return false
 	}

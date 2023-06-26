@@ -31,7 +31,7 @@ type matchCode struct {
 	// StartCreq string  "6";
 	//StartSres
 	// StartSres string  "7";
-	//StartBro
+	//StartBro 开始游戏
 	StartBro string "6"
 }
 

@@ -8,10 +8,10 @@ import (
 	"demo/utils/wscode"
 	"github.com/gogf/gf/v2/crypto/gmd5"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/gogf/guuid"
+	"github.com/gorilla/websocket"
 )
 
 type accountHandler struct {
@@ -37,7 +37,7 @@ func (c *accountHandler) RequireLogin(ctx g.Ctx) bool {
 }
 
 // Execute 执行消息进程，
-func (c *accountHandler) Execute(ctx g.Ctx, context *dto.Context, ws *ghttp.WebSocket, msgArray []byte) interface{} {
+func (c *accountHandler) Execute(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, msgArray []byte) interface{} {
 	mtype, array := utils.SplitMsg(msgArray)
 	switch mtype {
 
@@ -57,7 +57,7 @@ func (c *accountHandler) Execute(ctx g.Ctx, context *dto.Context, ws *ghttp.WebS
 	return false
 }
 
-func doReNickName(ctx g.Ctx, context *dto.Context, ws *ghttp.WebSocket, array []byte) interface{} {
+func doReNickName(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, array []byte) interface{} {
 	if !context.IsLogin {
 		return nil
 	}
@@ -78,7 +78,7 @@ func doReNickName(ctx g.Ctx, context *dto.Context, ws *ghttp.WebSocket, array []
 		d))
 	return true
 }
-func doLogin(ctx g.Ctx, ws *ghttp.WebSocket, msgArray []byte) (res *entity.Player) {
+func doLogin(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Player) {
 	d := &entity.Player{}
 	err := gconv.Scan(msgArray, d)
 	if err != nil {
@@ -108,7 +108,7 @@ func doLogin(ctx g.Ctx, ws *ghttp.WebSocket, msgArray []byte) (res *entity.Playe
 
 	return res
 }
-func doRegister(ctx g.Ctx, ws *ghttp.WebSocket, msgArray []byte) (res *entity.Player) {
+func doRegister(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Player) {
 
 	err := gconv.Scan(msgArray, &res)
 	res.Id = 0
