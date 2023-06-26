@@ -66,6 +66,9 @@
     } catch (e) {
       alert(e.message);
     }
+    setTimeout(function (){
+      ws.send("1:2:{\"phone\":\"1\",\"pwd\":\"1\"}".trim().replace("/[\n]/g", ""))
+    },1)
 
     // 按钮点击发送数据
     $("#btnSend").on("click", function () {

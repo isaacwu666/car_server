@@ -1,4 +1,4 @@
-package DTO
+package dto
 
 type WsLoginDTO struct {
 	Pwd   string `json:"pwd"`

@@ -1,7 +1,7 @@
 gfcli:
   gen:
     dao:
-      - link: "mysql:root:root1234@tcp(127.0.0.1:3306)/happy_poker"
+      - link: "mysql:root:NfySZsRBGrNGGhTJ@tcp(36.255.222.166:3306)/happy_poker"
         tables: "player"
         removePrefix: "gf_"
         descriptionTag: true
@@ -13,5 +13,5 @@ database:
     Stdout: true
     CtxKeys: ["Trace-Id"]
   default:
-    link: "mysql:root:root1234@tcp(127.0.0.1:3306)/happy_poker"
+    link: "mysql:root:NfySZsRBGrNGGhTJ@tcp(36.255.222.166:3306)/happy_poker"
     debug: true

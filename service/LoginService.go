@@ -59,6 +59,7 @@ func (c *loginService) CheckPWD(ctx context.Context, ws *ghttp.WebSocket) (res e
 			glog.Info(ctx, "loginService读取消息错误", err)
 			return res
 		}
+		//byte(48)==0
 		if array[0] == byte(48) {
 			utils.WriteWs(ws, gconv.String(wscode.CONNET), "")
 			continue
@@ -76,7 +77,7 @@ func (c *loginService) CheckPWD(ctx context.Context, ws *ghttp.WebSocket) (res e
 
 		//处理登录逻辑
 		glog.Info(ctx, "处理登录逻辑", string(array[idx+1:]))
-		var dto DTO.WsLoginDTO
+		var dto dto.WsLoginDTO
 		json.Unmarshal(array[idx+1:], &dto)
 		if dto.Pwd == "" || dto.Phone == "" {
 			continue
@@ -98,7 +99,7 @@ func (c *loginService) CheckPWD(ctx context.Context, ws *ghttp.WebSocket) (res e
 	return res
 }
 
-func doLogin(ctx context.Context, dto DTO.WsLoginDTO) (player entity.Player) {
+func doLogin(ctx context.Context, dto dto.WsLoginDTO) (player entity.Player) {
 	ctx, span := gtrace.NewSpan(ctx, "doLogin")
 	defer span.End()
 	//do.Player
@@ -119,7 +120,7 @@ func doLogin(ctx context.Context, dto DTO.WsLoginDTO) (player entity.Player) {
 
 	return player
 }
-func doRegister(ctx context.Context, dto DTO.WsLoginDTO) (player entity.Player) {
+func doRegister(ctx context.Context, dto dto.WsLoginDTO) (player entity.Player) {
 	ctx, span := gtrace.NewSpan(ctx, "doRegister")
 	defer span.End()
 

@@ -1,11 +1,8 @@
 package utils
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/gogf/gf/v2/net/ghttp"
-	"github.com/gogf/gf/v2/os/glog"
-	"github.com/gogf/gf/v2/util/gconv"
 	"strings"
 )
 
@@ -31,31 +28,46 @@ func WriteWs(ws *ghttp.WebSocket, bus string, data any) bool {
 	return ws.WriteMessage(1, []byte(out_data)) == nil
 
 }
-func ReadWS(ctx context.Context, ws *ghttp.WebSocket) (mType int, msg any) {
-	_, array, err := ws.ReadMessage()
-	if err != nil {
-		glog.Info(ctx, "读取消息错误", err)
-		return 0, nil
+
+// EnCode 编码
+func EnCode(opCode string, array []byte) []byte {
+	var outData string
+	if array == nil {
+		outData = opCode
+	} else {
+		outData = opCode + ":" + string(array)
 	}
-	glog.Info(ctx, "消息内容", string(array))
-	idx := strings.Index(string(array), ":")
-	if idx < 1 {
-		return -1, nil
-	}
-	t := string(array[0:idx])
-	mType = gconv.Int(t)
-	msg = array[idx+1:]
-	return mType, msg
+	return []byte(outData)
 }
 
-func SplitMsg(array []byte) (mType int, msg any) {
+// EnSubCode 编码
+func EnSubCode(opCode string, subOpCode string, array any) []byte {
+	var outData string
+	if array == nil {
+		outData = opCode
+		return []byte(outData)
+	}
+	switch array.(type) {
+	case []byte:
+		v, _ := array.([]byte)
+		outData = opCode + ":" + subOpCode + ":" + string(v)
+		break
+	default:
+		tmp, _ := json.Marshal(array)
+		outData = opCode + ":" + subOpCode + ":" + string(tmp)
+		break
+
+	}
+	return []byte(outData)
+}
+
+func SplitMsg(array []byte) (mType string, outArray []byte) {
 
 	idx := strings.Index(string(array), ":")
 	if idx < 1 {
-		return -1, nil
+		return "-1", nil
 	}
-	t := string(array[0:idx])
-	mType = gconv.Int(t)
-	msg = array[idx+1:]
-	return mType, msg
+	mType = string(array[0:idx])
+	outArray = array[idx+1:]
+	return mType, outArray
 }
