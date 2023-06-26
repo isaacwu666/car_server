@@ -2,10 +2,8 @@ package op
 
 import (
 	"demo/dto"
-	"demo/utils"
 	"demo/utils/opcode"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gorilla/websocket"
 )
 
 type userHandler struct {
@@ -31,7 +29,7 @@ func (c *userHandler) RequireLogin(ctx g.Ctx) bool {
 }
 
 // Execute 执行消息进程，
-func (c *userHandler) Execute(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, msgArray []byte) interface{} {
-	ws.WriteMessage(1, utils.EnCode(c.opCode, msgArray))
+func (c *userHandler) Execute(ctx g.Ctx, context *dto.Context, msgArray []byte) interface{} {
+
 	return false
 }

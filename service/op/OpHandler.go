@@ -3,8 +3,6 @@ package op
 import (
 	"demo/dto"
 	"demo/utils/opcode"
-	"github.com/gorilla/websocket"
-
 	"github.com/gogf/gf/v2/frame/g"
 	_ "github.com/gogf/gf/v2/net/ghttp"
 )
@@ -14,7 +12,7 @@ type (
 		//RequireLogin 是否需要登录
 		RequireLogin(ctx g.Ctx) bool
 		//Execute 执行消息进程，
-		Execute(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, msgArray []byte) interface{}
+		Execute(ctx g.Ctx, context *dto.Context, msgArray []byte) interface{}
 		//GetOpCode 获取操作编码
 		GetOpCode() string
 	}

@@ -2,15 +2,11 @@ package op
 
 import (
 	"context"
-	"demo/dao/model/entity"
 	"demo/dto"
 	"demo/utils/opcode"
 	"github.com/gogf/gf/v2/container/glist"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
-	"github.com/gorilla/websocket"
-
-	"strings"
 	"sync"
 	"time"
 )
@@ -38,7 +34,7 @@ func (c *fightHandler) RequireLogin(ctx g.Ctx) bool {
 }
 
 // Execute 执行消息进程，
-func (c *fightHandler) Execute(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, msgArray []byte) interface{} {
+func (c *fightHandler) Execute(ctx g.Ctx, context *dto.Context, msgArray []byte) interface{} {
 	var fightContext *fightContext
 	if context.RoomId == 0 {
 		if PlayerIdRoomIdMap[context.Player.Id] == 0 {
@@ -66,16 +62,9 @@ func (c *fightHandler) Execute(ctx g.Ctx, context *dto.Context, ws *websocket.Co
 
 // FightContext 战斗游戏上下文
 type fightContext struct {
-	Players []*playerContext
+	Players []*dto.Context
 	OnLine  []bool
 	RoomId  int64
-}
-type playerContext struct {
-	Id      int64
-	Player  *entity.Player
-	MsgChan *glist.List
-	WS      *websocket.Conn
-	OnLine  bool
 }
 
 var (
@@ -91,27 +80,20 @@ var (
 
 // Broadcast 向房间内玩家广播消息
 func (c *fightContext) Broadcast(ctx g.Ctx, array []byte) {
-	for i, player := range c.Players {
-
-		glog.Info(context.Background(), "服务端主动给客户端", player.Player.Id, "发消息", string(array))
-		if player.OnLine {
-			error := player.WS.WriteMessage(1, array)
-			if error != nil && strings.Contains(error.Error(), "close") {
-				c.OnLine[i] = false
-				c.Players[i].OnLine = false
-			} else if error == nil {
-				c.OnLine[i] = true
-				c.Players[i].OnLine = true
-			}
-		} else {
-			//将消息发送到管道中
-			c.Players[i].MsgChan.PushBack(array)
-		}
-
+	for _, player := range c.Players {
+		glog.Info(ctx, "服务端主动给客户端", player.Player.Id, "发消息", string(array))
+		player.SendMsg(array)
 	}
 }
 
-func NewFightContext(player1 *playerContext, player2 *playerContext, player3 *playerContext) *fightContext {
+// BroadcastIdx 向指定玩家广播信息
+func (c *fightContext) BroadcastIdx(ctx g.Ctx, array []byte, idx int) {
+	player := c.Players[idx]
+	glog.Info(context.Background(), "服务端主动给客户端", player.Player.Id, "发消息", string(array))
+	player.SendMsg(array)
+}
+
+func NewFightContext(player1 *dto.Context, player2 *dto.Context, player3 *dto.Context) *fightContext {
 	FightRoomLock.RLock()
 	defer FightRoomLock.RUnlock()
 	var roomId int64 = time.Now().Unix()
@@ -119,7 +101,7 @@ func NewFightContext(player1 *playerContext, player2 *playerContext, player3 *pl
 	var i *fightContext = &fightContext{
 		RoomId:  roomId,
 		OnLine:  make([]bool, 3),
-		Players: make([]*playerContext, 3),
+		Players: make([]*dto.Context, 3),
 	}
 	i.RoomId = roomId
 
@@ -128,41 +110,21 @@ func NewFightContext(player1 *playerContext, player2 *playerContext, player3 *pl
 	FightRoomMap[i.RoomId] = i
 	var idx int = 0
 	if player1 != nil {
-		if player1.MsgChan == nil {
-			player1.MsgChan = glist.New(true)
-		}
 		PlayerIdRoomIdMap[player1.Id] = roomId
 		i.Players[idx] = player1
 		idx++
 	}
 	if player2 != nil {
-		if player2.MsgChan == nil {
-			player2.MsgChan = glist.New(true)
-		}
 		PlayerIdRoomIdMap[player2.Id] = roomId
 		i.Players[idx] = player2
 		idx++
 	}
 	if player3 != nil {
-		if player3.MsgChan == nil {
-			player3.MsgChan = glist.New(true)
-		}
 		PlayerIdRoomIdMap[player3.Id] = roomId
 		i.Players[idx] = player3
 		idx++
-
 	}
-	//发送消息
 
 	return i
 
-}
-
-func NewPlayerContext(p *dto.Context, ws *websocket.Conn) *playerContext {
-	i := new(playerContext)
-	i.Id = p.Id
-	i.Player = p.Player
-	i.WS = ws
-	i.OnLine = true
-	return i
 }

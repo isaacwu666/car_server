@@ -11,7 +11,6 @@ import (
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/gogf/guuid"
-	"github.com/gorilla/websocket"
 )
 
 type accountHandler struct {
@@ -37,27 +36,27 @@ func (c *accountHandler) RequireLogin(ctx g.Ctx) bool {
 }
 
 // Execute 执行消息进程，
-func (c *accountHandler) Execute(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, msgArray []byte) interface{} {
+func (c *accountHandler) Execute(ctx g.Ctx, context *dto.Context, msgArray []byte) interface{} {
 	mtype, array := utils.SplitMsg(msgArray)
 	switch mtype {
 
 	case wscode.AccountCode.Login:
 		//1:2:{"phone":"1","pwd":"1"}
-		return doLogin(ctx, ws, array)
+		return doLogin(ctx, context, array)
 		break
 	case wscode.AccountCode.RegistCreq:
 		//1:2:{"phone":"1","pwd":"1"}
-		return doRegister(ctx, ws, array)
+		return doRegister(ctx, context, array)
 		break
 
 	case wscode.AccountCode.NICK_NAME_CREQ:
-		return doReNickName(ctx, context, ws, array)
+		return doReNickName(ctx, context, array)
 		break
 	}
 	return false
 }
 
-func doReNickName(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, array []byte) interface{} {
+func doReNickName(ctx g.Ctx, context *dto.Context, array []byte) interface{} {
 	if !context.IsLogin {
 		return nil
 	}
@@ -67,18 +66,18 @@ func doReNickName(ctx g.Ctx, context *dto.Context, ws *websocket.Conn, array []b
 	dbRes, err := g.Model("player").Ctx(ctx).Fields("nick_name").Where("id = ", d.Id).Update(toUpdate)
 	if err != nil || dbRes == nil {
 
-		ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+		context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 			wscode.AccountCode.NICK_NAME_SRES,
 			-1))
 		return false
 	}
 	d.NickName = toUpdate.NickName
-	ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+	context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 		wscode.AccountCode.NICK_NAME_SRES,
 		d))
 	return true
 }
-func doLogin(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Player) {
+func doLogin(ctx g.Ctx, context *dto.Context, msgArray []byte) (res *entity.Player) {
 	d := &entity.Player{}
 	err := gconv.Scan(msgArray, d)
 	if err != nil {
@@ -87,7 +86,7 @@ func doLogin(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Player
 	dbRes, err := g.Model("player").Ctx(ctx).With("id").Where("phone = ", d.Phone).Limit(0, 1).One()
 	if err != nil || dbRes == nil {
 		glog.Info(ctx, "查询失败", err)
-		ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+		context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 			wscode.AccountCode.LoginFail,
 			-1))
 		return res
@@ -96,19 +95,19 @@ func doLogin(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Player
 
 	md, err := gmd5.Encrypt(res.Salt + ":" + d.Pwd)
 	if md != res.Pwd {
-		ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+		context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 			wscode.AccountCode.LoginFail,
 			-1))
 		return res
 	}
 	res.Token = dto.NewToken(res.Id)
-	ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+	context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 		wscode.AccountCode.Login,
 		res))
 
 	return res
 }
-func doRegister(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Player) {
+func doRegister(ctx g.Ctx, context *dto.Context, msgArray []byte) (res *entity.Player) {
 
 	err := gconv.Scan(msgArray, &res)
 	res.Id = 0
@@ -119,14 +118,14 @@ func doRegister(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Pla
 	if err != nil {
 		glog.Info(ctx, "查询失败", err)
 
-		ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+		context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 			wscode.AccountCode.RegistSres,
 			-1))
 		return res
 	}
 	if dbRes > 0 {
 
-		ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+		context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 			wscode.AccountCode.RegistSres,
 			-1))
 		return res
@@ -137,7 +136,7 @@ func doRegister(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Pla
 	res.Pwd = md
 	r, err := g.Model("player").Ctx(ctx).Save(&res)
 	if err != nil {
-		ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+		context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 			wscode.AccountCode.RegistSres,
 			-1))
 		return res
@@ -145,7 +144,7 @@ func doRegister(ctx g.Ctx, ws *websocket.Conn, msgArray []byte) (res *entity.Pla
 	id, _ := r.LastInsertId()
 	res.Id = id
 	res.Token = dto.NewToken(res.Id)
-	ws.WriteMessage(1, utils.EnSubCode(AccountHandler.opCode,
+	context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 		wscode.AccountCode.RegistSres,
 		res))
 
