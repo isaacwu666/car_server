@@ -5,8 +5,10 @@ import (
 	"demo/utils"
 	"demo/utils/opcode"
 	"github.com/gogf/gf/v2/container/glist"
+	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
+	"github.com/gogf/gf/v2/util/gconv"
 	"sync"
 )
 
@@ -70,8 +72,9 @@ func (c *matchHandler) enterCreq(ctx g.Ctx, context *dto.Context, array []byte) 
 	if PlayerIdRoomIdMap[context.Id] > 0 {
 		//已经在匹配队列中
 		context.RoomId = PlayerIdRoomIdMap[context.Id]
+
 		//开始游戏
-		context.SendMsg(utils.EnSubCode(c.opCode, opcode.MatchCode.StartBro, PlayerIdRoomIdMap[context.Id]))
+		context.SendMsg(utils.EnSubCode(c.opCode, opcode.MatchCode.StartBro, FightRoomMap[context.RoomId]))
 		return
 	}
 	//确认没有开始游戏，进入匹配队列
@@ -84,9 +87,16 @@ func (c *matchHandler) enterCreq(ctx g.Ctx, context *dto.Context, array []byte) 
 		i2 := array[1]
 		i3 := array[2]
 		room := NewFightContext(i1.(*dto.Context), i2.(*dto.Context), i3.(*dto.Context))
-		context.RoomId = room.RoomId
+		for i, player := range room.Players {
+			if player.Id == context.Id {
+				context.RoomId = room.RoomId
+				context.CtxMap = gmap.NewHashMap(true)
+				context.CtxMap.Set("rIdx", gconv.String(i))
+				break
+			}
+		}
 		//广播进入游戏信息
-		room.Broadcast(ctx, utils.EnSubCode(c.opCode, opcode.MatchCode.StartBro, room.RoomId))
+		room.Broadcast(ctx, utils.EnSubCode(c.opCode, opcode.MatchCode.StartBro, room))
 	}
 	context.SendMsg(utils.EnSubCode(c.opCode, opcode.MatchCode.EnterSres, success))
 

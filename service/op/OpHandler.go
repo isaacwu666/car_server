@@ -45,6 +45,7 @@ func (b build) Build(op string) (res iOpHandler) {
 		return MatchHandler()
 		break
 	case opcode.Chat:
+		return ChatHandler
 		break
 	case opcode.HPFight:
 		return FightHandler

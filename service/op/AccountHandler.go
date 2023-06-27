@@ -101,6 +101,7 @@ func doLogin(ctx g.Ctx, context *dto.Context, msgArray []byte) (res *entity.Play
 		return res
 	}
 	res.Token = dto.NewToken(res.Id)
+	res.Pwd = ""
 	context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 		wscode.AccountCode.Login,
 		res))
@@ -144,6 +145,7 @@ func doRegister(ctx g.Ctx, context *dto.Context, msgArray []byte) (res *entity.P
 	id, _ := r.LastInsertId()
 	res.Id = id
 	res.Token = dto.NewToken(res.Id)
+	res.Pwd = ""
 	context.SendMsg(utils.EnSubCode(AccountHandler.opCode,
 		wscode.AccountCode.RegistSres,
 		res))

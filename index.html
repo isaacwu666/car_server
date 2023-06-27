@@ -24,6 +24,7 @@
         <div>
             <button class="btn btn-default" id="enterCreq" style="margin-top:15px">进入匹配队列</button>
             <button class="btn btn-default" id="leaveCreq" style="margin-top:15px">离开匹配队列</button>
+            <button class="btn btn-default" id="read" style="margin-top:15px">准备就绪</button>
         </div>
     </div>
 </div>
@@ -107,6 +108,7 @@
         $("#login3").on("click", () => send("1:2:{\"phone\":\"3\",\"pwd\":\"3\"}"));
         $("#enterCreq").on("click", () => send("3:0:"));
         $("#leaveCreq").on("click", () => send("3:2:"));
+        $("#read").on("click", () => send("5:12:"));
 
         function send(context) {
             if (ws==null){

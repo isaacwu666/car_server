@@ -1,33 +1,11 @@
 package utils
 
 import (
-	"encoding/json"
-	"github.com/gorilla/websocket"
+	"context"
+	"github.com/gogf/gf/v2/encoding/gjson"
+	"github.com/gogf/gf/v2/os/glog"
 	"strings"
 )
-
-func WriteWs(ws *websocket.Conn, bus string, data any) bool {
-	if data == nil {
-		return false
-	}
-	var out_data string
-	switch value := data.(type) {
-	case string:
-		out_data = string(bus) + ":" + value
-		break
-	default:
-		if o, err := json.Marshal(data); err != nil {
-			return false
-		} else {
-			out_data = bus + ":" + string(o)
-		}
-
-		break
-	}
-
-	return ws.WriteMessage(1, []byte(out_data)) == nil
-
-}
 
 // EnCode 编码
 func EnCode(opCode string, array []byte) []byte {
@@ -44,7 +22,7 @@ func EnCode(opCode string, array []byte) []byte {
 func EnSubCode(opCode string, subOpCode string, array any) []byte {
 	var outData string
 	if array == nil {
-		outData = opCode
+		outData = opCode + ":" + subOpCode
 		return []byte(outData)
 	}
 	switch array.(type) {
@@ -52,8 +30,15 @@ func EnSubCode(opCode string, subOpCode string, array any) []byte {
 		v, _ := array.([]byte)
 		outData = opCode + ":" + subOpCode + ":" + string(v)
 		break
+	case string:
+		v, _ := array.(string)
+		outData = opCode + ":" + subOpCode + ":" + v
+		break
 	default:
-		tmp, _ := json.Marshal(array)
+		tmp, err := gjson.Encode(array)
+		if err != nil {
+			glog.Info(context.Background(), "序列化错误", err.Error())
+		}
 		outData = opCode + ":" + subOpCode + ":" + string(tmp)
 		break
 

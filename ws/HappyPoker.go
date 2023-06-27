@@ -87,7 +87,10 @@ func doSend(ctx context.Context, ws *websocket.Conn, context *dto.Context, signa
 			if msg == nil {
 				return
 			}
-			ws.WriteMessage(1, msg)
+			err := ws.WriteMessage(1, msg)
+			if err != nil {
+				glog.Info(ctx, "发送消息错误", err)
+			}
 		case <-signal:
 			glog.Info(ctx, context.Id, "退出发送消息协程")
 			return

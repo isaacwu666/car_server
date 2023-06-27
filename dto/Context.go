@@ -11,12 +11,12 @@ import (
 
 // 用户上下文
 type Context struct {
-	Id       int64
-	RoomId   int64
-	Player   *entity.Player
-	CtxMap   map[string]any
-	IsLogin  bool
-	SendChan *chan []byte
+	Id       int64          `json:"id,omitempty,string"`
+	RoomId   int64          `json:"roomId,omitempty,string"`
+	Player   *entity.Player `json:"player,omitempty"`
+	CtxMap   *gmap.Map      `json:"-"`
+	IsLogin  bool           `json:"isLogin,omitempty"`
+	SendChan *chan []byte   `json:"-"`
 }
 
 func CopyContent(from *Context, to *Context) {
