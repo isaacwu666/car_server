@@ -3,6 +3,7 @@ package op
 import (
 	"context"
 	"demo/dto"
+	dtofight "demo/dto/fight"
 	"demo/utils"
 	"demo/utils/opcode"
 	"github.com/gogf/gf/v2/container/glist"
@@ -36,11 +37,11 @@ func (c *fightHandler) RequireLogin(ctx g.Ctx) bool {
 	return true
 }
 
-// Execute 执行消息进程，
+// Execute 执行消息进程,
 func (c *fightHandler) Execute(ctx g.Ctx, context *dto.Context, msgArray []byte) interface{} {
 	var fightContext *fightContext
 	fightContext = c.LoadFightContext(ctx, context)
-	//如果不存在，则返回
+	//如果不存在,则返回
 	if fightContext == nil {
 		return false
 	}
@@ -68,7 +69,7 @@ func (c *fightHandler) ready(ctx g.Ctx, context *dto.Context, fightContext *figh
 	}
 	rIdx := gconv.Int(rIdxS)
 	if fightContext.Ready[rIdx] {
-		//已经准备好了，则不用再次处理
+		//已经准备好了,则不用再次处理
 		//广播准备信息
 		fightContext.Broadcast(ctx, utils.EnSubCode(c.GetOpCode(),
 			opcode.FightCode.READY_BRO, fightContext.Ready))
@@ -90,21 +91,65 @@ func (c *fightHandler) ready(ctx g.Ctx, context *dto.Context, fightContext *figh
 	fightContext.Command.PushBack(cmd)
 	if AllTrue(fightContext.Ready) {
 		//全部就绪
-		if fightContext.Status < FightStatusLandowner {
-			//开始进入抢地主流程
-			fightContext.Status = FightStatusLandowner
+		if fightContext.Status < FightStatusDealCar {
+			//开始进入发牌流程
+			fightContext.Status = FightStatusDealCar
 			fightContext.CmdPIdx = 0
+			//开始发牌
+			go StartDealCar(ctx, fightContext)
 		}
+
 	}
 	fightContext.RLock.RUnlock()
 	//广播准备信息
 	fightContext.Broadcast(ctx, utils.EnSubCode(c.GetOpCode(),
 		opcode.FightCode.READY_BRO, fightContext.Ready))
+	//广播发牌
+
 	//广播抢地主
 	if fightContext.Status == FightStatusLandowner {
 		fightContext.Broadcast(ctx, utils.EnSubCode(c.GetOpCode(),
 			opcode.FightCode.STATUS_BRO, fightContext))
 	}
+
+}
+func StartDealCar(ctx context.Context, fightContext *fightContext) {
+	//开始发牌
+	glog.Info(ctx, fightContext.RoomId, "房间进入发牌流程")
+	fightContext.RLock.RLock()
+	defer fightContext.RLock.RUnlock()
+	var arrays []*dtofight.Poker = dtofight.NewPokerArray() //构建牌库
+	dtofight.ShufflePoker(arrays)                           //洗牌
+	var pokers []map[int]*dtofight.Poker = make([]map[int]*dtofight.Poker, 3)
+	var dealPokers []map[int]*dtofight.Poker = make([]map[int]*dtofight.Poker, 3)
+	pokers[0] = make(map[int]*dtofight.Poker, (54-3)/3)     //17
+	dealPokers[0] = make(map[int]*dtofight.Poker, (54-3)/3) //17
+	pokers[1] = make(map[int]*dtofight.Poker, (54-3)/3)     //17
+	dealPokers[1] = make(map[int]*dtofight.Poker, (54-3)/3) //17
+	pokers[2] = make(map[int]*dtofight.Poker, (54-3)/3)     //17
+	dealPokers[2] = make(map[int]*dtofight.Poker, (54-3)/3) //17
+	fightContext.Pokers = pokers
+	fightContext.DealPokers = dealPokers
+
+	var jokerPoker = make(map[int]*dtofight.Poker, 3) //17
+
+	for i := 0; i < len(arrays)-3; i++ {
+		//发牌
+		idx := i % 3
+		pokers[idx][arrays[i].Id] = arrays[i]
+		//发送具体的牌值给对应的玩家
+		fightContext.Players[idx].SendMsg(
+			utils.EnSubCode(opcode.HPFight,
+				opcode.FightCode.GET_CARD_SRES, arrays[i]))
+		//广播给全部人
+		fightContext.Broadcast(ctx, utils.EnSubCode(opcode.HPFight,
+			opcode.FightCode.GET_CARD_OTHER_SRES, idx))
+	}
+	//地主组排
+	jokerPoker[arrays[51].Id] = arrays[51]
+	jokerPoker[arrays[52].Id] = arrays[52]
+	jokerPoker[arrays[53].Id] = arrays[53]
+	fightContext.JokerPoker = jokerPoker
 
 }
 func AllTrue(bool2 []bool) bool {
@@ -125,7 +170,7 @@ func (c *fightHandler) LoadFightContext(ctx g.Ctx, context *dto.Context) *fightC
 			return fightContext
 		}
 		roomId := PlayerIdRoomIdMap[context.Player.Id]
-		//如果房间信息为空，去掉脏水数据
+		//如果房间信息为空,去掉脏水数据
 		if FightRoomMap[roomId] == nil {
 			FightRoomLock.RLock()
 			if FightRoomMap[roomId] == nil {
@@ -171,18 +216,25 @@ type fightContext struct {
 	RoomId  int64          `json:"roomId,omitempty,string"`
 	//房间写锁
 	RLock sync.RWMutex `json:"-"`
-	//当前的步数，用于保证时序
+	//当前的步数,用于保证时序
 	idxStep int `json:"idxStep,omitempty"`
 	//命令记录
 	Command *glist.List `json:"command,omitempty"`
-	//游戏状态。1等待中，5抢地主，10翻倍中，15发牌中，20开始游戏，30结算中，40退出游戏
+	//游戏状态。1等待中,3发牌中,5抢地主,10翻倍中,15发牌中,20开始游戏,30结算中,40退出游戏
 	Status int `json:"status"`
-	//当前可以执行命令的玩家下标，在抢地主，翻倍，发牌 状态中有效
+	//当前可以执行命令的玩家下标,在抢地主,翻倍,发牌 状态中有效
 	CmdPIdx int `json:"cmdPIdx"`
+	//牌库
+	Pokers []map[int]*dtofight.Poker `json:"_"`
+	//已经发送的牌库
+	DealPokers []map[int]*dtofight.Poker `json:"dealPokers"`
+	//地主牌
+	JokerPoker map[int]*dtofight.Poker `json:"-"`
 }
 
 var (
 	FightStatusWait         = 1  //1等待中
+	FightStatusDealCar      = 3  //3发牌中
 	FightStatusLandowner    = 5  //5抢地主
 	FightStatusDouble       = 10 //10翻倍中
 	FightStatusDealing      = 15 //15发牌中
@@ -211,7 +263,7 @@ var (
 	FightRoomList = glist.New(true)
 	//FightRoomMap <RoomId,fightContext>
 	FightRoomMap = make(map[int64]*fightContext)
-	//PlayerIdRoomIdMap <玩家ID，房间ID>
+	//PlayerIdRoomIdMap <玩家ID,房间ID>
 	PlayerIdRoomIdMap = make(map[int64]int64)
 	//FightRoomLock 锁ID
 	FightRoomLock sync.RWMutex

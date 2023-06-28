@@ -21,27 +21,29 @@ type fightCode struct {
 	GET_CARD_SRES string "11" //服务器给客户端卡牌的响应
 
 	//准备
-	READY_CREQ  string "12"
-	READY_BRO   string "13"
-	STATUS_CREQ string "14" //客户端请求当前状态
-	STATUS_BRO  string "15" //服务端请求广播当前状态
+	READY_CREQ          string "12"
+	READY_BRO           string "13"
+	STATUS_CREQ         string "14" //客户端请求当前状态
+	STATUS_BRO          string "15" //服务端请求广播当前状态
+	GET_CARD_OTHER_SRES string "16" //服务端给其他玩家发牌时
 }
 
 var FightCode = &fightCode{
-	GRAB_LANDLORD_CREQ: "0",
-	GRAB_LANDLORD_BRO:  "1",
-	TURN_GRAB_BRO:      "2",
-	DEAL_CREQ:          "3",
-	DEAL_SRES:          "4",
-	DEAL_BRO:           "5",
-	PASS_CREQ:          "6",
-	PASS_SRES:          "7",
-	TURN_DEAL_BRO:      "8",
-	LEAVE_BRO:          "9",
-	OVER_BRO:           "10",
-	GET_CARD_SRES:      "11",
-	READY_CREQ:         "12",
-	READY_BRO:          "13",
-	STATUS_CREQ:        "14",
-	STATUS_BRO:         "15",
+	GRAB_LANDLORD_CREQ:  "0",
+	GRAB_LANDLORD_BRO:   "1",
+	TURN_GRAB_BRO:       "2",
+	DEAL_CREQ:           "3",
+	DEAL_SRES:           "4",
+	DEAL_BRO:            "5",
+	PASS_CREQ:           "6",
+	PASS_SRES:           "7",
+	TURN_DEAL_BRO:       "8",
+	LEAVE_BRO:           "9",
+	OVER_BRO:            "10",
+	GET_CARD_SRES:       "11",
+	READY_CREQ:          "12",
+	READY_BRO:           "13",
+	STATUS_CREQ:         "14",
+	STATUS_BRO:          "15",
+	GET_CARD_OTHER_SRES: "16",
 }
